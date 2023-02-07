@@ -1,0 +1,65 @@
+apiVersion: v1 #Version of API K8s
+kind: Service #Type of K8s object
+metadata: #Description of object
+  name: udr2-mysql
+  labels:
+    app: udr2
+spec: #Configuration of object
+  ports:
+    - port: 3306
+  selector:
+    app: udr2 #Application name
+    tier: mysql
+  type: NodePort
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-pv-claim
+  labels:
+    app: udr2
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi #Memory of storage
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: udr2-mysql
+  labels:
+    app: udr2
+spec:
+  selector:
+    matchLabels:
+      app: udr2
+      tier: mysql
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: udr2
+        tier: mysql
+    spec:
+      containers: #Containers that we deploy into pods of deployment
+        - image: mysql:5.7
+          name: mysql
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom: #Redirecting to Secret container
+                secretKeyRef:
+                  name: mysql-pass
+                  key: password
+          ports:
+            - containerPort: 3306
+              name: mysql
+          volumeMounts: #Redirecting to PersistentVolumeClaim, that we described earlier
+            - name: mysql-persistent-storage
+              mountPath: /var/lib/mysql
+      volumes:
+        - name: mysql-persistent-storage
+          persistentVolumeClaim:
+            claimName: mysql-pv-claim

@@ -1,0 +1,67 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: udr2
+  labels:
+    app: udr2
+spec:
+  ports:
+    - port: 80
+  selector:
+    app: udr2
+    tier: backend
+  type: NodePort
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: wp-pv-claim
+  labels:
+    app: udr2
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: udr2
+  labels:
+    app: udr2
+spec:
+  selector:
+    matchLabels:
+      app: udr2
+      tier: backend
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: udr2
+        tier: backend
+    spec:
+      containers:
+        - image: chenson2910/udr2:1.0
+          name: udr2
+          env:
+            - name: UDR2_DB_HOST
+              value: udr2-mysql
+            - name: UDR2_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-pass
+                  key: password
+          ports:
+            - containerPort: 80
+              name: udr2
+          volumeMounts:
+            - name: udr2-persistent-storage
+              mountPath: /var/www/html
+      volumes:
+        - name: udr2-persistent-storage
+          persistentVolumeClaim:
+            claimName: wp-pv-claim

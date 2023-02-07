@@ -1,0 +1,7 @@
+secretGenerator: #Secrets container, with mysql password
+  - name: mysql-pass
+    literals:
+      - password=snix123%
+resources: #Manifests, with description of our services
+  - mysql-deployment.yaml
+  - udr2-deployment.yaml
